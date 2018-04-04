@@ -1,10 +1,13 @@
 package main.java;
 
-public interface BankInterface {
-    public Object createAccount(Object[] arguments);
-    public Object deleteAccount(Object[] arguments);
-    public Object updateAccount(Object[] arguments);
-    public Object monitor(Object[] arguments);
-    public Object transfer(Object[] arguments);
-    public Object statistic(Object[] arguments);
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+public interface BankInterface extends Remote {
+    public Object createAccount(Object[] arguments) throws RemoteException;
+    public Object deleteAccount(Object[] arguments) throws RemoteException;
+    public Object updateAccount(Object[] arguments) throws RemoteException;
+    public Object monitor(Object[] arguments) throws RemoteException;
+    public Object transfer(Object[] arguments) throws RemoteException;
+    public Object statistic(Object[] arguments) throws RemoteException;
 }

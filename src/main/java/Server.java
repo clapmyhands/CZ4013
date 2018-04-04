@@ -5,6 +5,11 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.HashMap;
 
+import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
 public class Server extends Thread implements BankInterface{
 
     private DatagramSocket socket;
@@ -20,6 +25,25 @@ public class Server extends Thread implements BankInterface{
         catch (Exception e) {
             // Do something
         };
+    }
+
+    public static void main(String args[]) {
+
+        try {
+            Server obj = new Server();
+//            Hello stub = (Hello) UnicastRemoteObject.exportObject(obj, 0);
+
+            // Bind the remote object's stub in the registry
+            Registry registry = LocateRegistry.getRegistry();
+//            registry.bind("Hello", stub);
+
+            System.err.println("Server ready");
+
+            obj.run();
+        } catch (Exception e) {
+            System.err.println("Server exception: " + e.toString());
+            e.printStackTrace();
+        }
     }
 
     public void run()  {
