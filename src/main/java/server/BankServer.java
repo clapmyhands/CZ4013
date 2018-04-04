@@ -1,4 +1,6 @@
-package main.java;
+package main.java.server;
+
+import main.java.Bank.BankInterface;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -7,18 +9,16 @@ import java.util.HashMap;
 
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
 
-public class Server extends Thread implements BankInterface{
-
+public class BankServer extends Thread implements BankInterface {
+    private static BankServer instance;
     private DatagramSocket socket;
     private static Handler handler = new Handler();
     private boolean running;
     private byte[] buf = new byte[256];
     private static HashMap<Integer, Object> responseStore;
 
-    public Server() {
+    public BankServer() {
         try {
             socket = new DatagramSocket(4445);
         }
@@ -27,21 +27,28 @@ public class Server extends Thread implements BankInterface{
         };
     }
 
+    public static BankServer getInstance() {
+        if(instance == null) {
+            instance = new BankServer();
+        }
+        return instance;
+    }
+
     public static void main(String args[]) {
 
         try {
-            Server obj = new Server();
+            BankServer obj = BankServer.getInstance();
 //            Hello stub = (Hello) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
 //            registry.bind("Hello", stub);
 
-            System.err.println("Server ready");
+            System.err.println("ServerTest ready");
 
             obj.run();
         } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
+            System.err.println("ServerTest exception: " + e.toString());
             e.printStackTrace();
         }
     }

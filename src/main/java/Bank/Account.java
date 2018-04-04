@@ -73,6 +73,14 @@ public class Account {
         this.balance = balance;
     }
 
+    public void drawMoney(float amount){
+        this.balance-=amount;
+    }
+
+    public void depositMoney(float amount){
+        this.balance+=amount;
+    }
+
     public byte[] toByteArray() {
         byte[] acc_number, name, pass, cur, balance;
         byte[] tmp;

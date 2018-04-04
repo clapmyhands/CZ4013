@@ -1,7 +1,7 @@
 package main.java;
 
 public enum Opcode {
-    CREATE(1), DELETE(2), UPDATE(3), TRANSFER(4), MONITOR(5), TBD(6);
+    CREATE(1), DELETE(2), UPDATE(3), TRANSFER(4), MONITOR(5), CHECK(6);
 
     private int operation_code = 0;
 

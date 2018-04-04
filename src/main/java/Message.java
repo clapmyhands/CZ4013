@@ -2,7 +2,6 @@ package main.java;
 
 import main.java.Bank.Account;
 
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,15 +9,16 @@ import java.util.Arrays;
 public class Message {
     public static final byte ACCOUNT_CODE = 0x01;
     public static final byte INT_CODE = 0x02;
-    public static final byte EXCEPTION_CODE = 0x03;
+    public static final byte FLOAT_CODE = 0x03;
+    public static final byte EXCEPTION_CODE = 0x04;
 
     private boolean is_request; // 1 bit - request = 1 | reply = 0
     private int request_id; // 32 bit
     private int object_ref;
     private int op_code;
-    private ArrayList<Object> content;
+    private Object[] content;
 
-    public Message(boolean is_request, int request_id, int object_ref, int opcode, ArrayList<Object> content){
+    public Message(boolean is_request, int request_id, int object_ref, int opcode, Object[] content){
         this.is_request = is_request;
         this.request_id = request_id;
         this.object_ref = object_ref;
@@ -54,12 +54,16 @@ public class Message {
         return op_code;
     }
 
-    public ArrayList<Object> getContent(){
+    public void setOp_code(int op_code) {
+        this.op_code = op_code;
+    }
+
+    public Object[] getContent(){
         return this.content;
     }
 
-    public void setOp_code(int op_code) {
-        this.op_code = op_code;
+    public void setContent(Object[] content) {
+        this.content = content;
     }
 
     public static byte[] marshall(Message msg){
@@ -93,6 +97,12 @@ public class Message {
                 content_len += 1+Integer.BYTES+acc.length;
             } else if(cls == Exception.class){
                 System.out.println("yay Exception");
+            } else if(cls == Float.class){
+                contents.add(ByteBuffer.allocate(Byte.BYTES+Float.BYTES)
+                        .put(FLOAT_CODE)
+                        .putFloat((float)obj)
+                        .array());
+                content_len += 1+Float.BYTES;
             }
         }
         // (request+request_id)+object_ref+op_code+content_len - 3 int
@@ -113,8 +123,8 @@ public class Message {
         boolean is_request;
         int request_id;
         int object_ref;
-        Opcode op_code;
-        ArrayList<Object> content;
+        int op_code;
+        Object[] content;
 
         ByteBuffer wrapper = ByteBuffer.wrap(marshalled_msg);
         int request = wrapper.getInt(offset);
@@ -125,13 +135,13 @@ public class Message {
         object_ref = wrapper.getInt(offset);
         offset+=Integer.BYTES;
 
-        op_code = Opcode.fromCode(wrapper.getInt(offset));
+        op_code = wrapper.getInt(offset);
         offset+=Integer.BYTES;
 
         int args_amount = wrapper.getInt(offset);
         offset+=Integer.BYTES;
 
-        ArrayList<Object> contents = new ArrayList<>();
+        Object[] contents = new Object[args_amount];
         for(int i=0; i<args_amount; i++){
             byte class_code = wrapper.get(offset);
             offset+=Byte.BYTES;
@@ -140,11 +150,14 @@ public class Message {
                 offset+=Integer.BYTES;
                 byte[] tmp = Arrays.copyOfRange(
                         marshalled_msg, offset, offset+acc_len);
-                contents.add(Account.fromByteArray(tmp));
+                contents[i] = Account.fromByteArray(tmp);
                 offset+=acc_len;
             } else if (class_code == INT_CODE){
-                contents.add(wrapper.getInt(offset));
+                contents[i] = wrapper.getInt(offset);
                 offset+=Integer.BYTES;
+            } else if (class_code == FLOAT_CODE){
+                contents[i] = wrapper.getFloat(offset);
+                offset+=Float.BYTES;
             }
         }
         return new Message(
@@ -159,7 +172,7 @@ public class Message {
         sb.append(" " + request_id + " ");
         sb.append(" " + object_ref + " ");
         sb.append(" " + op_code + " ");
-        sb.append(" " + content.size() + " ");
+        sb.append(" " + content.length + " ");
         sb.append("]");
         return sb.toString();
     }
