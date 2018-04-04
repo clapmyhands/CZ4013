@@ -1,6 +1,8 @@
 package main.java.server;
 
+import main.java.Bank.Account;
 import main.java.Bank.BankInterface;
+import main.java.Handler;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -103,28 +105,32 @@ public class BankServer extends Thread implements BankInterface {
         socket.close();
     }
 
-    public Object createAccount(Object[] arguments) {
-        return Handler.CreateAccountHandler.handle(arguments);
+    public Object[] createAccount(Account account) {
+        return Handler.CreateAccountHandler.handle(account);
     };
 
-    public Object deleteAccount(Object[] arguments) {
-        return Handler.DeleteAccountHandler.handle(arguments);
+    public Object[] deleteAccount(Account account) {
+        return Handler.DeleteAccountHandler.handle(account);
     };
 
-    public Object updateAccount(Object[] arguments) {
-        return Handler.UpdateAccountHandler.handle(arguments);
+    public Object[] updateAccount(Account account, boolean draw, float amount) {
+        return Handler.UpdateAccountHandler.handle(account, draw, amount);
     };
 
-    public Object monitor(Object[] arguments) {
-        return Handler.MonitorHandler.handle(arguments);
+    public Object[] monitor(int interval, InetAddress clientAddress, int clientPort) {
+        return Handler.MonitorHandler.handle(interval, clientAddress, clientPort);
     };
 
-    public Object transfer(Object[] arguments) {
-        return Handler.TransferHandler.handle(arguments);
+    public Object[] transfer(Account sender, Account receiver, float amount) {
+        return Handler.TransferHandler.handle(sender, receiver, amount);
     };
 
-    public Object statistic(Object[] arguments) {
-        return Handler.StatisticHandler.handle(arguments);
+    public Object[] checkBalance(Account account) {
+        return Handler.CheckBalanceHandler.handle(account);
+    };
+
+    public Object[] statistic() {
+        return Handler.StatisticHandler.handle();
     };
 
     private Object handle(String operation, Object[] arguments) {

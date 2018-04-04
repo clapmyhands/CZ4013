@@ -1,5 +1,8 @@
 package main.java;
 
+import java.net.InetAddress;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import main.java.Bank.Account;
@@ -7,18 +10,18 @@ import main.java.Bank.Currency;
 
 
 public class Handler {
-    private static List<Integer> monitors;
-    private static HashMap<Integer, Account> accounts;
+    private static HashMap<Object[], LocalDateTime> monitors = new HashMap<Object[], LocalDateTime>();
+    private static HashMap<Integer, Account> accounts = new HashMap<Integer, Account>();
     private static int accountCounter = 0;
 
-    public static List getMonitors() {
+    public static HashMap<Object[], LocalDateTime> getMonitors() {
         return monitors;
     }
 
     public interface OperationHandler {
-        static Object handle(Object[] arguments) throws Exception {
-            return null;
-        };
+//        static Object[] handle(Object... arguments) throws Exception {
+//            return null;
+//        };
     }
 
     public static abstract class NonIdempotentOperationHandler implements OperationHandler {
@@ -35,21 +38,22 @@ public class Handler {
             return;
         };
 
-        public static Object handle(Object[] arguments) {
+        public static Object[] handle(Account newAccount) {
 
             int newAccountNumber = ++accountCounter;
 
             // Check if account exists already, return account if exists
             if (checkIfAccountExists(newAccountNumber)) {
-                return accounts.get(newAccountNumber);
+                return new Object[]{accounts.get(newAccountNumber)};
             }
 
-            Account newAccount = Account.createAccount(arguments[0].toString(), arguments[1].toString(), (Currency) arguments[2], (float) arguments[3]);
+            newAccount.setAccountNumber(newAccountNumber);
             accounts.put(newAccount.getAccountNumber(), newAccount);
 
-            NonIdempotentCallback(arguments);
+            Object[] result = new Object[]{newAccount};
+            NonIdempotentCallback(result);
 
-            return newAccount;
+            return result;
         };
     }
 
@@ -59,8 +63,8 @@ public class Handler {
             return;
         };
 
-        public static Object handle(Object[] arguments) {
-            int accountNumber = (int) arguments[0];
+        public static Object[] handle(Account account) {
+            int accountNumber = account.getAccountNumber();
 
             // Check if account exists, raise error if not
             if (!checkIfAccountExists(accountNumber)) {
@@ -69,7 +73,10 @@ public class Handler {
 
             accounts.remove(accountNumber);
 
-            return null;
+            Object[] result = new Object[]{account};
+            NonIdempotentCallback(result);
+
+            return result;
         };
     }
 
@@ -79,36 +86,44 @@ public class Handler {
             return;
         };
 
-        public static Object handle(Object[] arguments) {
-            int accountNumber = (int) arguments[0];
+        public static Object[] handle(Account account, boolean draw, float amount) {
+            int accountNumber = account.getAccountNumber();
 
             // Check if account exists, raise error if not
             if (!checkIfAccountExists(accountNumber)) {
                 throw new IllegalArgumentException("Account " + accountNumber + " is not found.");
             }
 
-            Account account = accounts.get(accountNumber);
-            float balanceChange = (float) arguments[1];
-            account.setBalance(account.getBalance() + balanceChange);
-            accounts.put(accountNumber, account);
+            Account storedAccount = accounts.get(accountNumber);
 
-            return account;
+            if (draw) account.setBalance(account.getBalance() - amount);
+            else account.setBalance(account.getBalance() + amount);
+
+            accounts.put(accountNumber, storedAccount);
+
+            Object[] result = new Object[]{storedAccount};
+            NonIdempotentCallback(result);
+
+            return result;
         };
     }
 
     public static class MonitorHandler implements OperationHandler {
-        public static Object handle(Object[] arguments) {
-            int accountNumber = (int) arguments[0];
+        public static Object[] handle(int interval, InetAddress clientAddress, int clientPort) {
+            LocalDateTime now = LocalDateTime.now();
+            // Use Object array to store the clientAddress and clientPort as key
+            monitors.put(new Object[]{clientAddress, clientPort}, now.plusSeconds(interval));
 
-            // Check if account exists, raise error if not
-            if (!checkIfAccountExists(accountNumber)) {
-                throw new IllegalArgumentException("Account " + accountNumber + " is not found.");
+            // Delete outdated monitors
+            for (Object[] key : monitors.keySet()) {
+                if (monitors.get(key).isBefore(LocalDateTime.now())) {
+                    monitors.remove(key);
+                }
             }
 
-            monitors.add(accountNumber);
-            Account account = accounts.get(accountNumber);
+            Object[] result = new Object[]{interval, clientAddress, clientPort};
 
-            return account;
+            return result;
         };
     }
 
@@ -118,31 +133,49 @@ public class Handler {
             return;
         };
 
-        public static Object handle(Object[] arguments) {
-            int senderAccountNumber = (int) arguments[0];
-            int receiverAccountNumber = (int) arguments[1];
+        public static Object[] handle(Account senderAccount, Account receiverAccount, float amount) {
+            int senderAccountNumber = senderAccount.getAccountNumber();
+            int receiverAccountNumber = receiverAccount.getAccountNumber();
 
             // Check if account exists, raise error if not
             if (!checkIfAccountExists(senderAccountNumber) && !checkIfAccountExists(receiverAccountNumber)) {
                 throw new IllegalArgumentException("Account " + senderAccountNumber + " or " + receiverAccountNumber + " is not found.");
             }
 
-            Account senderAccount = accounts.get(senderAccountNumber);
-            Account receiverAccount = accounts.get(receiverAccountNumber);
+            Account storedSenderAccount = accounts.get(senderAccountNumber);
+            Account storedReceiverAccount = accounts.get(receiverAccountNumber);
 
-            float transferAmount = (float) arguments[2];
-            senderAccount.setBalance(senderAccount.getBalance() - transferAmount);
-            receiverAccount.setBalance(receiverAccount.getBalance() + transferAmount);
+            storedSenderAccount.setBalance(storedSenderAccount.getBalance() - amount);
+            storedReceiverAccount.setBalance(storedReceiverAccount.getBalance() + amount);
 
-            accounts.put(senderAccountNumber, senderAccount);
-            accounts.put(receiverAccountNumber, receiverAccount);
+            accounts.put(senderAccountNumber, storedSenderAccount);
+            accounts.put(receiverAccountNumber, storedReceiverAccount);
 
-            return senderAccount;
+            Object[] result = new Object[]{storedSenderAccount, storedReceiverAccount, amount};
+            NonIdempotentCallback(result);
+
+            return result;
+        };
+    }
+
+    public static class CheckBalanceHandler implements OperationHandler {
+        public static Object[] handle(Account account) {
+            int accountNumber = account.getAccountNumber();
+
+            // Check if account exists, raise error if not
+            if (!checkIfAccountExists(accountNumber)) {
+                throw new IllegalArgumentException("Account " + accountNumber + " is not found.");
+            }
+
+            Account storedAccount = accounts.get(accountNumber);
+
+            Object[] result = new Object[]{storedAccount};
+            return result;
         };
     }
 
     public static class StatisticHandler implements OperationHandler {
-        public static Object handle(Object[] arguments) {
+        public static Object[] handle() {
             String report = "Bank Statistics";
             report += "\n===========================";
 
@@ -168,7 +201,8 @@ public class Handler {
                 report += "\n\t" + totalMoney.get(currency).toString() + " " + currency;
             }
 
-            return report;
+            Object[] result = new Object[]{report};
+            return result;
         };
     }
 }

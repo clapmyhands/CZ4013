@@ -2,8 +2,10 @@ package main.java.server;
 
 import main.java.Bank.Account;
 import main.java.Bank.BankInterface;
+import main.java.Handler;
 import main.java.Message;
 import main.java.Opcode;
+import main.java.server.BankServer;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -93,25 +95,25 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
     @Override
     public Object[] createAccount(Account account)
             throws IllegalArgumentException {
-        return null;
+        return Handler.CreateAccountHandler.handle(account);
     }
 
     @Override
     public Object[] deleteAccount(Account account)
             throws IllegalArgumentException {
-        return null;
+        return Handler.DeleteAccountHandler.handle(account);;
     }
 
     @Override
     public Object[] updateAccount(Account account, boolean draw, float amount)
             throws IllegalArgumentException {
-        return null;
+        return Handler.UpdateAccountHandler.handle(account, draw, amount);
     }
 
     @Override
     public Object[] transferMoney(Account from_acc, Account to_acc, float amount)
             throws IllegalArgumentException {
-        return new Object[0];
+        return Handler.TransferHandler.handle(from_acc, to_acc, amount);
     }
 
     // idk what to do with this one since you need address and port but the interface
@@ -124,12 +126,12 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
 
     public Object[] monitor(int interval, InetAddress address, int port)
             throws IllegalArgumentException {
-        return null;
+        return Handler.MonitorHandler.handle(interval, address, port);
     }
 
     @Override
     public Object[] checkAccountBalance(Account account)
             throws IllegalArgumentException {
-        return null;
+        return Handler.CheckBalanceHandler.handle(account);
     }
 }
