@@ -1,4 +1,4 @@
-package cz4013.assign;
+package main.java;
 
 public enum Opcode {
     CREATE(1), DELETE(2), UPDATE(3), TRANSFER(4), MONITOR(5), TBD(6);

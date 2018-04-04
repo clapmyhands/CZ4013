@@ -1,6 +1,6 @@
-package cz4013.assign;
+package main.java;
 
-import cz4013.assign.Bank.Account;
+import main.java.Bank.Account;
 
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;

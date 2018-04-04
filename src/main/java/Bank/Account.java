@@ -1,6 +1,6 @@
-package cz4013.assign.Bank;
+package main.java.Bank;
 
-import cz4013.assign.Bank.Currency;
+import main.java.Bank.Currency;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -33,11 +33,11 @@ public class Account {
         return new Account(EMPTY_ACC_NUMBER, name, password, currency, balance);
     }
 
-    public int getAccount_number() {
+    public int getAccountNumber() {
         return account_number;
     }
 
-    public void setAccount_number(int account_number) {
+    public void setAccountNumber(int account_number) {
         this.account_number = account_number;
     }
 
@@ -79,7 +79,7 @@ public class Account {
         int str_len;
 
         acc_number = ByteBuffer.allocate(Integer.BYTES)
-                .putInt(getAccount_number()).array();
+                .putInt(getAccountNumber()).array();
 
         tmp = getName().getBytes(StandardCharsets.UTF_8);
         str_len = stringByteLength(getName());

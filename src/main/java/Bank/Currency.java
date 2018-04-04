@@ -1,4 +1,4 @@
-package cz4013.assign.Bank;
+package main.java.Bank;
 
 public enum Currency {
     SGD(1), USD(2);
