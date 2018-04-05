@@ -3,6 +3,7 @@ package main.java.Bank;
 public enum Currency {
     SGD(1), USD(2);
 
+    public static final Currency default_val = Currency.SGD;
     private int currency_id = 0;
 
     Currency(int code) {

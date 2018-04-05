@@ -3,6 +3,7 @@ package main.java;
 import main.java.Bank.Account;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -11,6 +12,7 @@ public class Message {
     public static final byte INT_CODE = 0x02;
     public static final byte FLOAT_CODE = 0x03;
     public static final byte EXCEPTION_CODE = 0x04;
+    public static final byte STRING_CODE = 0x05;
 
     private boolean is_request; // 1 bit - request = 1 | reply = 0
     private int request_id; // 32 bit
@@ -86,7 +88,7 @@ public class Message {
                         .put(INT_CODE)
                         .putInt((int)obj)
                         .array());
-                content_len += 1+Integer.BYTES;
+                content_len += Byte.BYTES+Integer.BYTES;
             } else if(cls == Account.class){
                 byte[] acc = ((Account)obj).toByteArray();
                 contents.add(ByteBuffer.allocate(Byte.BYTES+Integer.BYTES+acc.length)
@@ -94,15 +96,29 @@ public class Message {
                         .putInt(acc.length)
                         .put(acc)
                         .array());
-                content_len += 1+Integer.BYTES+acc.length;
+                content_len += Byte.BYTES+Integer.BYTES+acc.length;
             } else if(cls == Exception.class){
-                System.out.println("yay Exception");
+                byte[] exc = ((Exception)obj).getMessage().getBytes(StandardCharsets.UTF_8);
+                contents.add(ByteBuffer.allocate(Byte.BYTES+Integer.BYTES+exc.length)
+                        .put(EXCEPTION_CODE)
+                        .putInt(exc.length)
+                        .put(exc)
+                        .array());
+                content_len += Byte.BYTES+Integer.BYTES+exc.length;
             } else if(cls == Float.class){
                 contents.add(ByteBuffer.allocate(Byte.BYTES+Float.BYTES)
                         .put(FLOAT_CODE)
                         .putFloat((float)obj)
                         .array());
-                content_len += 1+Float.BYTES;
+                content_len += Byte.BYTES+Float.BYTES;
+            } else if(cls == String.class){
+                byte[] str = ((String)obj).getBytes(StandardCharsets.UTF_8);
+                contents.add(ByteBuffer.allocate(Byte.BYTES+Integer.BYTES+str.length)
+                        .put(STRING_CODE)
+                        .putInt(str.length)
+                        .put(str)
+                        .array());
+                content_len += Byte.BYTES+Float.BYTES+str.length;
             }
         }
         // (request+request_id)+object_ref+op_code+content_len - 3 int
@@ -158,6 +174,18 @@ public class Message {
             } else if (class_code == FLOAT_CODE){
                 contents[i] = wrapper.getFloat(offset);
                 offset+=Float.BYTES;
+            } else if (class_code == EXCEPTION_CODE){
+                int exc_len = wrapper.getInt(offset);
+                byte[] tmp = Arrays.copyOfRange(
+                        marshalled_msg, offset, offset+exc_len);
+                contents[i] = new IllegalArgumentException(
+                        new String(tmp, StandardCharsets.UTF_8));
+            } else if(class_code == STRING_CODE){
+                int str_len = wrapper.getInt(offset);
+                offset+=Integer.BYTES;
+                byte[] tmp = Arrays.copyOfRange(
+                        marshalled_msg, offset, offset+str_len);
+                contents[i] = new String(tmp, StandardCharsets.UTF_8);
             }
         }
         return new Message(
@@ -175,6 +203,12 @@ public class Message {
         sb.append(" " + content.length + " ");
         sb.append("]");
         return sb.toString();
+    }
+
+    public static boolean checkEqualHeader(Message a, Message b) {
+        return (a.getRequest_id() == b.getRequest_id()) &&
+                (a.getOp_code() == b.getOp_code()) &&
+                (a.getObject_ref() == b.getObject_ref());
     }
 
     public static int requestToInt(int request_id, boolean request){

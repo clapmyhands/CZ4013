@@ -10,12 +10,16 @@ public class Subscriber {
     private InetAddress address;
     private int port;
     private int request_id;
+    private int interval;
+    private long register_time;
 
 
-    public Subscriber(InetAddress address, int port, int request_id) {
+    public Subscriber(InetAddress address, int port, int request_id, int interval) {
         this.address = address;
         this.port = port;
         this.request_id = request_id;
+        this.interval = interval;
+        this.register_time = System.nanoTime();
     }
 
     public static int getOp_code() {
@@ -32,5 +36,9 @@ public class Subscriber {
 
     public int getRequest_id() {
         return request_id;
+    }
+
+    public boolean checkValid(){
+        return (System.nanoTime()-register_time)/1000>interval;
     }
 }
