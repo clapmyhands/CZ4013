@@ -19,6 +19,7 @@ public class BankInterfaceProxy implements BankInterface{
     public BankInterfaceProxy(int port) {
         try{
             udpConnection = new DatagramSocket();
+            udpConnection.setSoTimeout(3000);
             server_port = port;
             request_id = 0;
         } catch (SocketException e){
@@ -31,11 +32,12 @@ public class BankInterfaceProxy implements BankInterface{
     }
 
     private void send_message(InetAddress address, int port, byte[] msg) {
-        DatagramPacket packet = new DatagramPacket(msg, msg.length, address, port);
         int retry = 0;
         while(retry<3){
             try {
+                DatagramPacket packet = new DatagramPacket(msg, msg.length, address, port);
                 udpConnection.send(packet);
+                break;
             } catch (SocketTimeoutException ste) {
                 retry++;
             } catch (IOException e) {
@@ -45,7 +47,7 @@ public class BankInterfaceProxy implements BankInterface{
     }
 
     private Message receive_reply(){
-        byte[] reply = new byte[512];
+        byte[] reply = new byte[1024];
         DatagramPacket packet = new DatagramPacket(reply, reply.length);
         try{
             udpConnection.receive(packet);
@@ -96,7 +98,7 @@ public class BankInterfaceProxy implements BankInterface{
     public Object[] updateAccount(Account account, boolean draw, float amount){
         Message message = createRequestMessage();
         message.setOp_code(Opcode.UPDATE.getId());
-        message.setContent(new Object[]{account, draw, amount});
+        message.setContent(new Object[]{account, draw? 1:0, amount});
         byte[] content = Message.marshall(message);
 
         send_message(server_addr, server_port, content);

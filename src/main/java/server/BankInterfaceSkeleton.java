@@ -20,7 +20,7 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
     public BankInterfaceSkeleton(int port, int at_most_once_flag) {
         try{
             udpConnection = new DatagramSocket(port);
-            udpConnection.setSoTimeout(1000);
+            udpConnection.setSoTimeout(3000);
             bankServer = BankServer.getInstance();
             responseStore = new HashMap<>();
             at_most_once = at_most_once_flag>=1;
@@ -31,10 +31,10 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
 
     @Override
     public void run() {
-        receivedData = new byte[512];
+        receivedData = new byte[1024];
         for(;;){
-            DatagramPacket packet = new DatagramPacket(receivedData, receivedData.length);
             try {
+                DatagramPacket packet = new DatagramPacket(receivedData, receivedData.length);
                 udpConnection.receive(packet);
                 decodePacketHandler(packet);
             } catch (SocketTimeoutException e){
@@ -90,7 +90,7 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
                 reply_args = deleteAccount((Account) args[0]);
                 break;
             case UPDATE:
-                reply_args = updateAccount((Account) args[0], (int)args[1]>=1, (float)args[2]);
+                reply_args = updateAccount((Account) args[0], ((int)args[1])==1, (float)args[2]);
                 break;
             case TRANSFER:
                 reply_args = transferMoney((Account)args[0],(Account)args[1],(float)args[2]);
@@ -109,11 +109,12 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
     }
 
     private void send_message(InetAddress address, int port, byte[] msg) {
-        DatagramPacket packet = new DatagramPacket(msg, msg.length, address, port);
         int retry = 0;
         while(retry<3){
             try {
+                DatagramPacket packet = new DatagramPacket(msg, msg.length, address, port);
                 udpConnection.send(packet);
+                break;
             } catch (SocketTimeoutException ste) {
                 retry++;
             } catch (IOException e) {
@@ -152,18 +153,21 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
         return bankServer.monitor(interval, address, port, request_id);
     }
 
-    public void publishToSubs(Subscriber[] subs, int object_ref, Opcode opcode, Object[] reply_content){
+    public void publishToSubs(Object[] subs, int object_ref, Opcode opcode, Object[] reply_content){
         Message message = new Message(false, 0, object_ref, opcode.getId(), reply_content);
-        for(Subscriber sub: subs){
-            message.setRequest_id(sub.getRequest_id());
+        for(Object sub: subs){
+            Subscriber subscriber = (Subscriber)sub;
+            message.setRequest_id(subscriber.getRequest_id());
             message.setContent(reply_content);
 
             byte[] msg = Message.marshall(message);
-            DatagramPacket packet = new DatagramPacket(msg, msg.length, sub.getAddress(), sub.getPort());
+            DatagramPacket packet = new DatagramPacket(msg, msg.length,
+                    subscriber.getAddress(), subscriber.getPort());
             int retry = 0;
             while(retry<3){
                 try {
                     udpConnection.send(packet);
+                    break;
                 } catch (SocketTimeoutException ste) {
                     retry++;
                 } catch (IOException e) {

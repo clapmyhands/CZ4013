@@ -40,7 +40,7 @@ public class BankServer implements BankInterface {
         try {
             BankServer obj = BankServer.getInstance();
             BankInterfaceSkeleton skeleton = new BankInterfaceSkeleton(
-                    DEFAULT_PORT, port);
+                    DEFAULT_PORT, 1);
             System.err.println("BankServer running...");
             skeleton.run();
 
@@ -73,10 +73,10 @@ public class BankServer implements BankInterface {
     public Object[] updateAccount(Account account, boolean draw, float amount) {
         Object[] obj =  Handler.UpdateAccountHandler.handle(account, draw, amount);
         if(!(obj[0] instanceof Exception)){
-            update_msg = String.format("%s %d %s from acc. number: %d",
-                    draw? "drawn":"deposit",
+            update_msg = String.format("%s %f %s from acc. number: %d",
+                    draw? "Drawn":"Deposit",
                     amount,
-                    account.getCurrency(),
+                    account.getCurrency().toString(),
                     account.getAccountNumber());
         } else{
             update_msg = "";
@@ -108,13 +108,13 @@ public class BankServer implements BankInterface {
         return new Object[]{"Client subscribed..."};
     }
 
-    public Subscriber[] getSubscriber(){
+    public Object[] getSubscriber(){
         for(Subscriber sub: subs){
             if(!sub.checkValid()){
                 subs.remove(sub);
             }
         }
-        return (Subscriber[])subs.toArray();
+        return subs.toArray();
     }
 
     public String getUpdateMessage() {

@@ -1,6 +1,7 @@
 package main.java.client;
 
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 import main.java.Bank.Account;
@@ -21,6 +22,7 @@ public class BankClient {
         System.out.println("4. Transfer money");
         System.out.println("5. Monitor update");
         System.out.println("6. Check account balance");
+        System.out.println("7. Exit");
         System.out.println("Enter a command to proceed:");
     }
 
@@ -29,7 +31,9 @@ public class BankClient {
         InetAddress addr; int port = 4445;
         BankInterfaceProxy proxy = new BankInterfaceProxy(port);
         try{
-            addr = InetAddress.getByName(args[0]);
+//            addr = InetAddress.getByName(args[0]);
+//            addr = InetAddress.getByName("10.27.84.62");
+            addr = InetAddress.getLocalHost();
             proxy.setServerAddress(addr);
         } catch (Exception e){
             e.printStackTrace();
@@ -39,30 +43,47 @@ public class BankClient {
         System.out.println("Bank Client Started...");
         print_menu();
         for(;;){
-            Opcode order = Opcode.fromCode(sc.nextInt());
+            int order_code = Integer.parseInt(sc.nextLine());
+            if(order_code == 7){
+                System.exit(0);
+                proxy.udpConnection.close();
+            }
+            Opcode order = Opcode.fromCode(order_code);
+            Object[] return_arg; Account tmp;
             Account acc; float amount;
             try {
                 switch (order) {
                     case CREATE:
                         acc = ask_particulars(true, true, true, true, false);
                         System.out.println(acc.toString());
-                        proxy.createAccount(acc);
+                        return_arg = proxy.createAccount(acc);
+                        tmp = (Account)return_arg[0];
+                        System.out.println(String.format("Created account: %d under name %s",
+                                tmp.getAccountNumber(), tmp.getName()));
                         break;
                     case DELETE:
                         acc = ask_particulars(true, true, false, false, true);
-                        proxy.deleteAccount(acc);
+                        return_arg = proxy.deleteAccount(acc);
+                        tmp = (Account)return_arg[0];
+                        System.out.println(String.format("Deleted account: %d under name %s",
+                                tmp.getAccountNumber(), tmp.getName()));
                         break;
                     case UPDATE:
                         acc = ask_particulars(true, true, true, false, true);
                         System.out.println("Specify transaction: draw(1) / deposit(0)");
-                        int op = sc.nextInt();
-                        if(op!=0 || op!=1)
+                        int op = Integer.parseInt(sc.nextLine());
+                        if(op!=0 && op!=1)
                             throw new IllegalArgumentException("Transaction operation can only be draw(1) or deposit(0)");
                         System.out.println("Enter amount of money:");
-                        amount = sc.nextFloat();
+                        amount = Float.parseFloat(sc.nextLine());
                         if(amount < 0)
                             throw new IllegalArgumentException("Amount cannot be negative");
-                        proxy.updateAccount(acc, op==1, amount);
+                        return_arg = proxy.updateAccount(acc, op==1, amount);
+                        tmp = (Account)return_arg[0];
+                        System.out.println(String.format("%s %f from account no: %d",
+                                (int)return_arg[1]==1? "Drawn": "Deposited",
+                                (float)return_arg[2],
+                                tmp.getAccountNumber()));
                         break;
                     case TRANSFER:
                         System.out.println("Enter account particular to transferMoney from");
@@ -71,20 +92,27 @@ public class BankClient {
                         System.out.println("Enter account particular to transferMoney to");
                         Account acc_t = ask_particulars(false, false, false, false, true);
 
-                        amount = sc.nextFloat();
+                        amount = Float.parseFloat(sc.nextLine());
                         if(amount < 0)
                             throw new IllegalArgumentException("Amount cannot be negative");
-                        proxy.transferMoney(acc_f, acc_t, amount);
+                        return_arg = proxy.transferMoney(acc_f, acc_t, amount);
+                        tmp = (Account)return_arg[0];
+                        Account temp = (Account)return_arg[1];
+                        System.out.println(String.format("Transfered from acc. no: %d to acc. no: %d with amount: %d",
+                                tmp.getAccountNumber(), temp.getAccountNumber(), (float)return_arg[2]));
                         break;
                     case MONITOR:
                         System.out.println("Enter interval to monitor in milliseconds:");
-                        int interval = sc.nextInt();
+                        int interval = Integer.parseInt(sc.nextLine());
                         proxy.monitor(interval);
                         break;
                     case CHECK:
                         System.out.println("Enter account particular to check");
                         acc = ask_particulars(true, true, true, false, true);
-                        proxy.checkAccountBalance(acc);
+                        return_arg = proxy.checkAccountBalance(acc);
+                        tmp = (Account)return_arg[0];
+                        System.out.println(String.format("Account no: %d under %s with currency: %s have balance: %d",
+                                tmp.getAccountNumber(), tmp.getName(), tmp.getCurrency(), tmp.getBalance()));
                         break;
                     default:
                         System.out.println("Invalid input...");
@@ -122,19 +150,19 @@ public class BankClient {
                 System.out.println(String.format("%d. %s",cur.getId(), cur.name()));
             }
             System.out.println("Choose the currency:");
-            currency = Currency.fromId(sc.nextInt());
+            currency = Currency.fromId(Integer.parseInt(sc.nextLine()));
             if(currency==null)
                 throw new IllegalArgumentException("Currency is not valid");
         }
         if(f_acc_balance){
             System.out.println("Enter the account balance:");
-            balance = sc.nextFloat();
+            balance = Float.parseFloat(sc.nextLine());
             if(balance<0)
                 throw new IllegalArgumentException("Balance can't be negative");
         }
         if(f_account_no){
             System.out.println("Enter Account number:");
-            account_no = sc.nextInt();
+            account_no = Integer.parseInt(sc.nextLine());
         }
         Account acc = new Account(account_no, name, pass, currency, balance);
         return acc;

@@ -1,10 +1,13 @@
 package main.java.server;
 
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
+
 import main.java.Bank.Account;
 import main.java.Bank.Currency;
 
@@ -34,12 +37,19 @@ public class Handler {
 
     private static boolean checkIfAccountParticularsEqual(Account a, Account b)
     throws IllegalArgumentException{
-        if(a.getAccountNumber()!=b.getAccountNumber())
+        if(a.getAccountNumber()!=b.getAccountNumber()){
             throw new IllegalArgumentException("Account Number does not match");
-        if(a.getName()!=b.getName())
+        }
+        String a_name = a.getName();
+        String b_name = b.getName();
+        if(!Objects.equals(a_name, b_name)){
             throw new IllegalArgumentException("Name registered to Account does not match");
-        if(a.getPassword()!=b.getPassword())
+        }
+        String a_pass = a.getPassword();
+        String b_pass = b.getPassword();
+        if(Objects.equals(a_pass, b_pass)){
             throw new IllegalArgumentException("Wrong password");
+        }
         return true;
     }
 
@@ -88,11 +98,12 @@ public class Handler {
                 checkIfAccountParticularsEqual(account, storedAccount);
                 accounts.remove(accountNumber);
 
-                Object[] result = new Object[]{account};
+                Object[] result = new Object[]{storedAccount};
                 NonIdempotentCallback(result);
 
                 return result;
             } catch (IllegalArgumentException e) {
+                e.printStackTrace();
                 return new Object[]{e};
             }
         };
@@ -116,18 +127,18 @@ public class Handler {
                 Account storedAccount = accounts.get(accountNumber);
 
                 if (draw){
-                    if(account.getBalance()-amount < 0)
+                    if(storedAccount.getBalance()-amount < 0)
                         throw new IllegalArgumentException("Balance is less than drawn amount");
-                    account.setBalance(account.getBalance() - amount);
+                    storedAccount.setBalance(storedAccount.getBalance() - amount);
                 }
-                else account.setBalance(account.getBalance() + amount);
+                else storedAccount.setBalance(storedAccount.getBalance() + amount);
 
                 accounts.put(accountNumber, storedAccount);
 
-                Object[] result = new Object[]{storedAccount};
+                Object[] result = new Object[]{storedAccount, draw?1:0, amount};
                 NonIdempotentCallback(result);
 
-                return new Object[]{storedAccount};
+                return result;
             } catch (IllegalArgumentException e) {
                 return new Object[]{e};
             }

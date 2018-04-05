@@ -98,7 +98,7 @@ public class Message {
                         .array());
                 content_len += Byte.BYTES+Integer.BYTES+acc.length;
             } else if(cls == Exception.class){
-                byte[] exc = ((Exception)obj).getMessage().getBytes(StandardCharsets.UTF_8);
+                byte[] exc = ((Exception)obj).getMessage().getBytes(StandardCharsets.UTF_16);
                 contents.add(ByteBuffer.allocate(Byte.BYTES+Integer.BYTES+exc.length)
                         .put(EXCEPTION_CODE)
                         .putInt(exc.length)
@@ -112,7 +112,7 @@ public class Message {
                         .array());
                 content_len += Byte.BYTES+Float.BYTES;
             } else if(cls == String.class){
-                byte[] str = ((String)obj).getBytes(StandardCharsets.UTF_8);
+                byte[] str = ((String)obj).getBytes(StandardCharsets.UTF_16);
                 contents.add(ByteBuffer.allocate(Byte.BYTES+Integer.BYTES+str.length)
                         .put(STRING_CODE)
                         .putInt(str.length)
@@ -179,13 +179,13 @@ public class Message {
                 byte[] tmp = Arrays.copyOfRange(
                         marshalled_msg, offset, offset+exc_len);
                 contents[i] = new IllegalArgumentException(
-                        new String(tmp, StandardCharsets.UTF_8));
+                        new String(tmp, StandardCharsets.UTF_16));
             } else if(class_code == STRING_CODE){
                 int str_len = wrapper.getInt(offset);
                 offset+=Integer.BYTES;
                 byte[] tmp = Arrays.copyOfRange(
                         marshalled_msg, offset, offset+str_len);
-                contents[i] = new String(tmp, StandardCharsets.UTF_8);
+                contents[i] = new String(tmp, StandardCharsets.UTF_16);
             }
         }
         return new Message(

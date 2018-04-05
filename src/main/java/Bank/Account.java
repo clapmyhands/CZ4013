@@ -89,12 +89,12 @@ public class Account {
         acc_number = ByteBuffer.allocate(Integer.BYTES)
                 .putInt(getAccountNumber()).array();
 
-        tmp = getName().getBytes(StandardCharsets.UTF_8);
+        tmp = getName().getBytes(StandardCharsets.UTF_16);
         str_len = stringByteLength(getName());
         name = ByteBuffer.allocate(Integer.BYTES+str_len).putInt(str_len)
                 .put(tmp).array();
 
-        tmp = getPassword().getBytes(StandardCharsets.UTF_8);
+        tmp = getPassword().getBytes(StandardCharsets.UTF_16);
         str_len = stringByteLength(getPassword());
         pass = ByteBuffer.allocate(Integer.BYTES+str_len).putInt(str_len)
                 .put(tmp).array();
@@ -123,11 +123,11 @@ public class Account {
         offset += Integer.BYTES;
 
         str_len = wrapper.getInt(offset);
-        name = new String(acc_bytes, offset+Integer.BYTES, str_len, StandardCharsets.UTF_8);
+        name = new String(acc_bytes, offset+Integer.BYTES, str_len, StandardCharsets.UTF_16);
         offset += Integer.BYTES+str_len;
 
         str_len = wrapper.getInt(offset);
-        password = new String(acc_bytes, offset+Integer.BYTES, str_len, StandardCharsets.UTF_8);
+        password = new String(acc_bytes, offset+Integer.BYTES, str_len, StandardCharsets.UTF_16);
         offset += Integer.BYTES+str_len;
 
         currency = Currency.fromId(ByteBuffer.wrap(acc_bytes, offset, Integer.BYTES).getInt());
@@ -139,8 +139,8 @@ public class Account {
     }
 
     private static int stringByteLength(String str){
-        // for now assume charset = utf-8
-        return str.getBytes(StandardCharsets.UTF_8).length;
+        // for now assume charset = UTF-16
+        return str.getBytes(StandardCharsets.UTF_16).length;
     }
 
     @Override
