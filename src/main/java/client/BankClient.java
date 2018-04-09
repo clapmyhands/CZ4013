@@ -40,9 +40,8 @@ public class BankClient {
         InetAddress addr; int port = 8098;
         BankInterfaceProxy proxy = new BankInterfaceProxy(port);
         try{
-//            addr = InetAddress.getByName(args[0]);
-//            addr = InetAddress.getByName("10.27.84.62");
-            addr = InetAddress.getLocalHost();
+            addr = InetAddress.getByName(args[0]);
+//            addr = InetAddress.getLocalHost();
             proxy.setServerAddress(addr);
         } catch (Exception e){
             e.printStackTrace();
@@ -121,6 +120,7 @@ public class BankClient {
                         System.out.println("Enter interval to monitor in seconds:");
                         int interval = Integer.parseInt(sc.nextLine());
                         proxy.monitor(interval);
+                        System.out.println("Monitoring ended...");
                         break;
                     case CHECK:
                         System.out.println("Enter account particular to check");

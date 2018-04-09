@@ -125,7 +125,9 @@ public class BankServer implements BankInterface {
     }
 
     public Object[] checkAccountBalance(Account account) {
-        return Handler.CheckBalanceHandler.handle(account);
+        Object[] obj = Handler.CheckBalanceHandler.handle(account);
+        update_msg="";
+        return obj;
     }
 
 }

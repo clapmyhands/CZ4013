@@ -137,6 +137,7 @@ public class BankInterfaceProxy implements BankInterface{
             String updates = String.valueOf(reply.getContent()[0]);
             System.out.println(updates);
         }
+        System.out.println("test1");
     }
 
     @Override
