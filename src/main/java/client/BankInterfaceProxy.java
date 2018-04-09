@@ -5,7 +5,6 @@ import main.java.Bank.BankInterface;
 import main.java.Message;
 import main.java.Opcode;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.*;
 
@@ -19,7 +18,7 @@ public class BankInterfaceProxy implements BankInterface{
     public BankInterfaceProxy(int port) {
         try{
             udpConnection = new DatagramSocket();
-            udpConnection.setSoTimeout(3000);
+            udpConnection.setSoTimeout(5000);
             server_port = port;
             request_id = 0;
         } catch (SocketException e){
@@ -49,11 +48,16 @@ public class BankInterfaceProxy implements BankInterface{
     private Message receive_reply(){
         byte[] reply = new byte[1024];
         DatagramPacket packet = new DatagramPacket(reply, reply.length);
-        try{
-            udpConnection.receive(packet);
-        } catch (IOException e) {
-            e.printStackTrace();
+        for(;;){
+            try{
+                udpConnection.receive(packet);
+                break;
+            } catch(SocketTimeoutException e){
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+
         byte[] msg = packet.getData();
         Message message = Message.unmarshall(msg);
         return message;
@@ -63,12 +67,9 @@ public class BankInterfaceProxy implements BankInterface{
         return new Message(true, request_id++, 0, 0, null);
     }
 
-    // kur fill from here - call your own function and if need to throw exception then use return instead
-    // like return Exception. remember to wrap everything as Object[]
-    // as it will get marshalled and send back to client
     @Override
     public Object[] createAccount(Account account){
-        Message message = createRequestMessage();
+        Message message = new Message(true, request_id++, 0, 0, null);;
         message.setOp_code(Opcode.CREATE.getId());
         message.setContent(new Object[]{account});
         byte[] content = Message.marshall(message);
@@ -96,9 +97,9 @@ public class BankInterfaceProxy implements BankInterface{
 
     @Override
     public Object[] updateAccount(Account account, boolean draw, float amount){
-        Message message = createRequestMessage();
+        Message message = new Message(true, request_id++, 0, 0, null);;
         message.setOp_code(Opcode.UPDATE.getId());
-        message.setContent(new Object[]{account, draw? 1:0, amount});
+        message.setContent(new Object[]{account, draw? 1:2, amount});
         byte[] content = Message.marshall(message);
 
         send_message(server_addr, server_port, content);
@@ -122,10 +123,8 @@ public class BankInterfaceProxy implements BankInterface{
         return reply.getContent();
     }
 
-    // idk what to do with this one since you need address and port but the interface
-    // shouldnt really need both address and port
     @Override
-    public Object[] monitor(int interval){
+    public void monitor(int interval){
         Message message = createRequestMessage();
         message.setOp_code(Opcode.MONITOR.getId());
         message.setContent(new Object[]{interval});
@@ -133,13 +132,11 @@ public class BankInterfaceProxy implements BankInterface{
 
         send_message(server_addr, server_port, content);
         long ellapsed = System.nanoTime();
-        while((System.nanoTime()-ellapsed)/1000<=interval){
+        while((System.nanoTime()-ellapsed)/1e9<=interval){
             Message reply = receive_reply();
             String updates = String.valueOf(reply.getContent()[0]);
             System.out.println(updates);
         }
-
-        return new Object[]{};
     }
 
     @Override

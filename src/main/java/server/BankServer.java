@@ -6,6 +6,7 @@ import main.java.Bank.BankInterface;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class BankServer implements BankInterface {
     private static BankServer instance;
@@ -15,7 +16,7 @@ public class BankServer implements BankInterface {
     private ArrayList<Subscriber> subs;
     private String update_msg;
 
-    private static final int DEFAULT_PORT = 4445;
+    private static final int DEFAULT_PORT = 8098;
 
 
     public BankServer() {
@@ -87,7 +88,7 @@ public class BankServer implements BankInterface {
     public Object[] transferMoney(Account sender, Account receiver, float amount) {
         Object[] obj = Handler.TransferHandler.handle(sender, receiver, amount);
         if(!(obj[0] instanceof Exception)){
-            update_msg = String.format("Transferred %d from acc.number %d to %d",
+            update_msg = String.format("Transferred %f from acc.number %d to %d",
                     amount,
                     sender.getAccountNumber(),
                     receiver.getAccountNumber());
@@ -98,23 +99,25 @@ public class BankServer implements BankInterface {
     }
 
     @Override
-    public Object[] monitor(int interval) {
-        return new Object[0];
+    public void monitor(int interval) {
     }
 
     public Object[] monitor(int interval, InetAddress clientAddress, int clientPort, int request_id) {
         Subscriber new_sub = new Subscriber(clientAddress, clientPort, request_id, interval);
         subs.add(new_sub);
+        System.out.println("new Client subscribed...");
         return new Object[]{"Client subscribed..."};
     }
 
-    public Object[] getSubscriber(){
-        for(Subscriber sub: subs){
+    public ArrayList<Subscriber> getSubscriber(){
+        Iterator<Subscriber> iter = subs.iterator();
+        while(iter.hasNext()){
+            Subscriber sub = iter.next();
             if(!sub.checkValid()){
-                subs.remove(sub);
+                iter.remove();
             }
         }
-        return subs.toArray();
+        return subs;
     }
 
     public String getUpdateMessage() {

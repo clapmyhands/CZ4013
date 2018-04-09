@@ -40,14 +40,10 @@ public class Handler {
         if(a.getAccountNumber()!=b.getAccountNumber()){
             throw new IllegalArgumentException("Account Number does not match");
         }
-        String a_name = a.getName();
-        String b_name = b.getName();
-        if(!Objects.equals(a_name, b_name)){
+        if(!a.getName().equalsIgnoreCase(b.getName())){
             throw new IllegalArgumentException("Name registered to Account does not match");
         }
-        String a_pass = a.getPassword();
-        String b_pass = b.getPassword();
-        if(Objects.equals(a_pass, b_pass)){
+        if(!a.getPassword().equalsIgnoreCase(b.getPassword())){
             throw new IllegalArgumentException("Wrong password");
         }
         return true;
@@ -99,7 +95,7 @@ public class Handler {
                 accounts.remove(accountNumber);
 
                 Object[] result = new Object[]{storedAccount};
-                NonIdempotentCallback(result);
+//                NonIdempotentCallback(result);
 
                 return result;
             } catch (IllegalArgumentException e) {
@@ -162,14 +158,16 @@ public class Handler {
                     throw new IllegalArgumentException("Account " + receiverAccountNumber + " is not found.");
                 }
 
+
                 Account storedSenderAccount = accounts.get(senderAccountNumber);
                 Account storedReceiverAccount = accounts.get(receiverAccountNumber);
 
-                checkIfAccountParticularsEqual(storedSenderAccount, senderAccount);
+//                checkIfAccountParticularsEqual(storedSenderAccount, senderAccount);
                 if(storedSenderAccount.getCurrency()!=storedReceiverAccount.getCurrency())
                     throw new IllegalArgumentException("Transfer between different currency are not supported");
                 if(storedSenderAccount.getBalance()-amount < 0)
                     throw new IllegalArgumentException("Sender balance is less than transferred amount");
+
 
                 storedSenderAccount.setBalance(storedSenderAccount.getBalance() - amount);
                 storedReceiverAccount.setBalance(storedReceiverAccount.getBalance() + amount);
@@ -178,7 +176,7 @@ public class Handler {
                 accounts.put(receiverAccountNumber, storedReceiverAccount);
 
                 Object[] result = new Object[]{storedSenderAccount, storedReceiverAccount, amount};
-                NonIdempotentCallback(result);
+//                NonIdempotentCallback(result);
                 return result;
 
             } catch (IllegalArgumentException e) {
@@ -198,8 +196,6 @@ public class Handler {
                 }
 
                 Account storedAccount = accounts.get(accountNumber);
-
-                Object[] result;
 
                 checkIfAccountParticularsEqual(storedAccount, account);
                 return new Object[]{storedAccount};

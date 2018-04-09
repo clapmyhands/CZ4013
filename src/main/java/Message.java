@@ -144,7 +144,7 @@ public class Message {
 
         ByteBuffer wrapper = ByteBuffer.wrap(marshalled_msg);
         int request = wrapper.getInt(offset);
-        is_request = request == 0x80000000;
+        is_request = (request & 0x80000000) == 0x80000000;
         request_id = (request<<1) >> 1; // remove leftmost bit
         offset += Integer.BYTES;
 

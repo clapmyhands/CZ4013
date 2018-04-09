@@ -39,6 +39,7 @@ public class Subscriber {
     }
 
     public boolean checkValid(){
-        return (System.nanoTime()-register_time)/1000>interval;
+        // interval in seconds
+        return (System.nanoTime()-register_time)/1e9<=interval;
     }
 }

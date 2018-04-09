@@ -10,6 +10,15 @@ import main.java.Opcode;
 import main.java.client.BankInterfaceProxy;
 
 public class BankClient {
+    private static Scanner scanner;
+
+    private static Scanner getScanner(){
+        if(scanner==null){
+            scanner = new Scanner(System.in);
+        }
+        return scanner;
+    }
+
     BankClient() {
     }
 
@@ -28,7 +37,7 @@ public class BankClient {
 
     public static void main(String[] args) {
 //        BankClient bankClient = new BankClient();
-        InetAddress addr; int port = 4445;
+        InetAddress addr; int port = 8098;
         BankInterfaceProxy proxy = new BankInterfaceProxy(port);
         try{
 //            addr = InetAddress.getByName(args[0]);
@@ -39,7 +48,7 @@ public class BankClient {
             e.printStackTrace();
         }
 
-        Scanner sc = new Scanner(System.in);
+        Scanner sc = BankClient.getScanner();
         System.out.println("Bank Client Started...");
         print_menu();
         for(;;){
@@ -54,6 +63,7 @@ public class BankClient {
             try {
                 switch (order) {
                     case CREATE:
+                        System.out.println("Creating account...");
                         acc = ask_particulars(true, true, true, true, false);
                         System.out.println(acc.toString());
                         return_arg = proxy.createAccount(acc);
@@ -62,6 +72,7 @@ public class BankClient {
                                 tmp.getAccountNumber(), tmp.getName()));
                         break;
                     case DELETE:
+                        System.out.println("Deleting account...");
                         acc = ask_particulars(true, true, false, false, true);
                         return_arg = proxy.deleteAccount(acc);
                         tmp = (Account)return_arg[0];
@@ -69,6 +80,7 @@ public class BankClient {
                                 tmp.getAccountNumber(), tmp.getName()));
                         break;
                     case UPDATE:
+                        System.out.println("Draw/Deposit money");
                         acc = ask_particulars(true, true, true, false, true);
                         System.out.println("Specify transaction: draw(1) / deposit(0)");
                         int op = Integer.parseInt(sc.nextLine());
@@ -80,29 +92,33 @@ public class BankClient {
                             throw new IllegalArgumentException("Amount cannot be negative");
                         return_arg = proxy.updateAccount(acc, op==1, amount);
                         tmp = (Account)return_arg[0];
-                        System.out.println(String.format("%s %f from account no: %d",
+                        System.out.println(String.format("account no: %d %s %f",
+                                tmp.getAccountNumber(),
                                 (int)return_arg[1]==1? "Drawn": "Deposited",
-                                (float)return_arg[2],
-                                tmp.getAccountNumber()));
+                                (float)return_arg[2]));
+                        System.out.println(String.format(
+                                "Account new balance: %f", tmp.getBalance()));
                         break;
                     case TRANSFER:
-                        System.out.println("Enter account particular to transferMoney from");
+                        System.out.println("Transfer Money");
+                        System.out.println("Enter account particular to transfer money from");
                         Account acc_f = ask_particulars(true, true, false, false, true);
 
-                        System.out.println("Enter account particular to transferMoney to");
+                        System.out.println("Enter account particular to transfer money to");
                         Account acc_t = ask_particulars(false, false, false, false, true);
 
+                        System.out.println("Enter amount to transfer:");
                         amount = Float.parseFloat(sc.nextLine());
                         if(amount < 0)
                             throw new IllegalArgumentException("Amount cannot be negative");
                         return_arg = proxy.transferMoney(acc_f, acc_t, amount);
                         tmp = (Account)return_arg[0];
                         Account temp = (Account)return_arg[1];
-                        System.out.println(String.format("Transfered from acc. no: %d to acc. no: %d with amount: %d",
+                        System.out.println(String.format("Transfered from acc. no: %d to acc. no: %d with amount: %f",
                                 tmp.getAccountNumber(), temp.getAccountNumber(), (float)return_arg[2]));
                         break;
                     case MONITOR:
-                        System.out.println("Enter interval to monitor in milliseconds:");
+                        System.out.println("Enter interval to monitor in seconds:");
                         int interval = Integer.parseInt(sc.nextLine());
                         proxy.monitor(interval);
                         break;
@@ -111,8 +127,12 @@ public class BankClient {
                         acc = ask_particulars(true, true, true, false, true);
                         return_arg = proxy.checkAccountBalance(acc);
                         tmp = (Account)return_arg[0];
-                        System.out.println(String.format("Account no: %d under %s with currency: %s have balance: %d",
-                                tmp.getAccountNumber(), tmp.getName(), tmp.getCurrency(), tmp.getBalance()));
+                        System.out.println(String.format(
+                                "Account no: %d under the name %s with currency: %s have balance: %f",
+                                tmp.getAccountNumber(),
+                                tmp.getName(),
+                                tmp.getCurrency(),
+                                tmp.getBalance()));
                         break;
                     default:
                         System.out.println("Invalid input...");
@@ -133,7 +153,7 @@ public class BankClient {
         int account_no = Account.EMPTY_ACC_NUMBER;
         Currency currency = Currency.default_val;
         float balance = 0;
-        Scanner sc = new Scanner(System.in);
+        Scanner sc = BankClient.getScanner();
 
         if(f_name){
             System.out.println("Enter the name:");

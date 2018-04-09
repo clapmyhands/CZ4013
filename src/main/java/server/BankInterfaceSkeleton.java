@@ -5,10 +5,10 @@ import main.java.Bank.BankInterface;
 import main.java.Message;
 import main.java.Opcode;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.*;
 import java.util.HashMap;
+import java.util.List;
 
 public class BankInterfaceSkeleton implements BankInterface, Runnable{
     private BankServer bankServer;
@@ -20,7 +20,7 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
     public BankInterfaceSkeleton(int port, int at_most_once_flag) {
         try{
             udpConnection = new DatagramSocket(port);
-            udpConnection.setSoTimeout(3000);
+            udpConnection.setSoTimeout(5000);
             bankServer = BankServer.getInstance();
             responseStore = new HashMap<>();
             at_most_once = at_most_once_flag>=1;
@@ -53,6 +53,8 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
         Opcode operation = Opcode.fromCode(request.getOp_code());
         Object[] args = request.getContent();
 
+        System.out.println(request.toString());
+
         // check for previous execution and saved reply
         Message reply;
         if(at_most_once){
@@ -67,13 +69,18 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
                 request.getObject_ref(), request.getOp_code(), null);
         Object[] reply_args = invoke_method(operation, args, request.getRequest_id(), packet);
         reply.setContent(reply_args);
+        if(reply_args==null){
+            return;
+        }
         if(at_most_once){
             responseStore.put(request.getRequest_id(), reply); // set saved reply after execution
         }
+        System.out.println(reply.toString());
         send_message(client_addr, client_port, Message.marshall(reply));
 
         String update_msg = bankServer.getUpdateMessage();
         if(update_msg!=""){
+            System.out.println("here1");
             publishToSubs(bankServer.getSubscriber(),
                     request.getObject_ref(),
                     operation, new Object[]{update_msg});
@@ -81,7 +88,7 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
     }
 
     public Object[] invoke_method(Opcode operation, Object[] args, int request_id, DatagramPacket packet){
-        Object[] reply_args = new Object[]{};
+        Object[] reply_args;
         switch(operation){
             case CREATE:
                 reply_args = createAccount((Account) args[0]);
@@ -97,13 +104,13 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
                 break;
             case MONITOR:
                 // monitor might need client address and client port
-                reply_args = monitor((int)args[0], packet.getAddress(), packet.getPort(), request_id);
-                break;
+                monitor((int)args[0], packet.getAddress(), packet.getPort(), request_id);
+                return null;
             case CHECK:
                 reply_args = checkAccountBalance((Account) args[0]);
                 break;
             default:
-                break;
+                return null;
         }
         return reply_args;
     }
@@ -145,18 +152,17 @@ public class BankInterfaceSkeleton implements BankInterface, Runnable{
 
 
     @Override
-    public Object[] monitor(int interval){
-        return new Object[]{};
+    public void monitor(int interval){
     }
 
-    public Object[] monitor(int interval, InetAddress address, int port, int request_id){
-        return bankServer.monitor(interval, address, port, request_id);
+    public void monitor(int interval, InetAddress address, int port, int request_id){
+        bankServer.monitor(interval, address, port, request_id);
     }
 
-    public void publishToSubs(Object[] subs, int object_ref, Opcode opcode, Object[] reply_content){
+    public void publishToSubs(List<Subscriber> subs, int object_ref, Opcode opcode, Object[] reply_content){
         Message message = new Message(false, 0, object_ref, opcode.getId(), reply_content);
-        for(Object sub: subs){
-            Subscriber subscriber = (Subscriber)sub;
+        for(Subscriber subscriber: subs){
+            System.out.println("here2");
             message.setRequest_id(subscriber.getRequest_id());
             message.setContent(reply_content);
 
